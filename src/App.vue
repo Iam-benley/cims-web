@@ -149,7 +149,9 @@
           </div>
 
           <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button type="submit" class="btn btn-primary">
+              {{ isEdit ? "Update" : "Submit" }}
+            </button>
           </div>
         </form>
       </template>
@@ -171,6 +173,7 @@ import BootstrapDialog from "./components/ModalDialog.vue";
 import axios from "axios";
 
 const showDialog = ref(false);
+const isEdit = ref(false);
 const items = ref([]);
 
 const searchData = ref({
@@ -190,14 +193,30 @@ async function submitForm() {
   form.value.category_id = 1;
   form.value.unit_id = 1;
 
-  try {
-    const response = await axios.post("http://cims.test", {
-      method: "addItem",
-      data: form.value,
-    });
+  if (isEdit.value) {
+    console.log(form.value);
+    try {
+      const response = await axios.post("http://cims.test", {
+        method: "updateItem",
+        data: form.value,
+      });
 
-    console.log(response);
-  } catch (error) {}
+      console.log(response);
+    } catch (error) {
+      console.log(error);
+    }
+  } else {
+    try {
+      const response = await axios.post("http://cims.test", {
+        method: "addItem",
+        data: form.value,
+      });
+
+      console.log(response);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 }
 
 async function getInventoryItems() {
@@ -215,14 +234,20 @@ async function getInventoryItems() {
   }
 }
 
-const handleConfirm = () => {
+function editItem(item) {
+  form.value = item;
+  isEdit.value = true;
+  showDialog.value = true;
+}
+
+function handleConfirm() {
   console.log("User confirmed the action");
   // Perform your action here
-};
+}
 
-const handleClose = () => {
+function handleClose() {
   console.log("Dialog was closed");
-};
+}
 
 onMounted(async () => {
   await getInventoryItems();
