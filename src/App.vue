@@ -4,23 +4,27 @@
       <div class="col-md-8">
         <div class="input-group">
           <input
-            v-model="searchQuery"
+            v-model="searchData.name"
             type="text"
             class="form-control"
             placeholder="Search by name..."
           />
-          <select v-model="selectedCategory" class="form-select">
+          <select v-model="searchData.category_id" class="form-select">
             <option value="">All Categories</option>
             <option
               v-for="category in categories"
-              :key="category"
-              :value="category"
+              :key="category.id"
+              :value="category.id"
             >
-              {{ category }}
+              {{ category.name }}
             </option>
           </select>
-          <button class="btn btn-outline-primary" type="button">
-            <i class="bi bi-search"></i> Search
+          <button
+            @click="getInventoryItems"
+            class="btn btn-outline-primary"
+            type="button"
+          >
+            Search
           </button>
         </div>
       </div>
@@ -42,30 +46,39 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in items" :key="item.id">
-          <td>{{ item.name }}</td>
-          <td>{{ item.category }}</td>
-          <td>{{ item.quantity }}</td>
-          <td>{{ item.expiryDate }}</td>
-          <td>
-            <div class="d-flex gap-2">
-              <button
-                @click="editItem(item)"
-                class="btn btn-sm btn-outline-primary"
-                title="Edit"
-              >
-                Edit
-              </button>
-              <button
-                @click="confirmDelete(item)"
-                class="btn btn-sm btn-outline-danger"
-                title="Delete"
-              >
-                Delete
-              </button>
-            </div>
-          </td>
-        </tr>
+        <template v-if="items.length > 0">
+          <tr v-for="item in items" :key="item.id">
+            <td>{{ item.name }}</td>
+            <td>{{ item.category_name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.expiry_date ? item.expiry_date : "N/A" }}</td>
+            <td>
+              <div class="d-flex gap-2">
+                <button
+                  @click="editItem(item)"
+                  class="btn btn-sm btn-outline-primary"
+                  title="Edit"
+                >
+                  Edit
+                </button>
+                <button
+                  @click="openDeleteDialog(item)"
+                  class="btn btn-sm btn-outline-danger"
+                  title="Delete"
+                >
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <template v-else>
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">
+              No data available
+            </td>
+          </tr>
+        </template>
       </tbody>
     </table>
 
@@ -102,9 +115,13 @@
               required
             >
               <option value="" disabled selected>Select a category</option>
-              <option value="Medicine">Medicine</option>
-              <option value="Equipment">Equipment</option>
-              <option value="Consumables">Consumables</option>
+              <option
+                v-for="category in categories"
+                :key="category.id"
+                :value="category.id"
+              >
+                {{ category.name }}
+              </option>
             </select>
           </div>
 
@@ -129,9 +146,9 @@
                 required
               >
                 <option value="" disabled selected>Select unit</option>
-                <option value="pcs">pcs</option>
-                <option value="bottles">bottles</option>
-                <option value="boxes">boxes</option>
+                <option v-for="unit in units" :key="unit.id" :value="unit.id">
+                  {{ unit.abbreviation }}
+                </option>
               </select>
             </div>
           </div>
@@ -164,6 +181,32 @@
         <button class="btn btn-success" @click="handleConfirm">Proceed</button> -->
       </template>
     </BootstrapDialog>
+
+    <BootstrapDialog
+      v-model:show="showDeleteDialog"
+      title="Confirmation"
+      message="Are you sure you want to proceed?"
+      size="lg"
+      @confirm="handleConfirm"
+      @close="handleClose"
+    >
+      <!-- Custom body content -->
+      <template #body>
+        <h4>Are you sure?</h4>
+        <p>You won't be able to revert this!</p>
+      </template>
+
+      <!-- Custom footer -->
+      <template #footer>
+        <button
+          class="btn btn-outline-primary"
+          @click="showDeleteDialog = false"
+        >
+          Cancel
+        </button>
+        <button class="btn btn-danger" @click="handleDeleteItem">Delete</button>
+      </template>
+    </BootstrapDialog>
   </div>
 </template>
 
@@ -172,9 +215,16 @@ import { onMounted, ref } from "vue";
 import BootstrapDialog from "./components/ModalDialog.vue";
 import axios from "axios";
 
+const baseUrl = import.meta.env.VITE_BASE_URL;
+
+const categories = ref([]);
+const units = ref([]);
+
 const showDialog = ref(false);
+const showDeleteDialog = ref(false);
 const isEdit = ref(false);
 const items = ref([]);
+const itemToDelete = ref({});
 
 const searchData = ref({
   name: "",
@@ -190,13 +240,10 @@ const form = ref({
 });
 
 async function submitForm() {
-  form.value.category_id = 1;
-  form.value.unit_id = 1;
-
   if (isEdit.value) {
     console.log(form.value);
     try {
-      const response = await axios.post("http://cims.test", {
+      const response = await axios.post(baseUrl, {
         method: "updateItem",
         data: form.value,
       });
@@ -206,12 +253,14 @@ async function submitForm() {
       console.log(error);
     }
   } else {
+    console.log("add item");
+    console.log(form.value);
+
     try {
-      const response = await axios.post("http://cims.test", {
+      const response = await axios.post(baseUrl, {
         method: "addItem",
         data: form.value,
       });
-
       console.log(response);
     } catch (error) {
       console.log(error);
@@ -221,7 +270,7 @@ async function submitForm() {
 
 async function getInventoryItems() {
   try {
-    const response = await axios.post("http://cims.test", {
+    const response = await axios.post(baseUrl, {
       method: "getInventory",
       data: searchData.value,
     });
@@ -232,6 +281,60 @@ async function getInventoryItems() {
   } catch (error) {
     console.log(error);
   }
+}
+
+async function handleDeleteItem() {
+  try {
+    console.log(itemToDelete.value);
+
+    const response = await axios.post(baseUrl, {
+      method: "deleteItem",
+      data: itemToDelete.value,
+    });
+
+    console.log(response);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+async function getCategories() {
+  try {
+    const response = await axios.post(baseUrl, {
+      method: "getCategories",
+      data: "",
+    });
+
+    console.log(response);
+
+    if (response.status == 200) {
+      categories.value = response.data.data;
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+async function getUnits() {
+  try {
+    const response = await axios.post(baseUrl, {
+      method: "getUnits",
+      data: "",
+    });
+
+    console.log(response);
+
+    if (response.status == 200) {
+      units.value = response.data.data;
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+function openDeleteDialog(item) {
+  showDeleteDialog.value = true;
+  itemToDelete.value = item;
 }
 
 function editItem(item) {
@@ -251,5 +354,7 @@ function handleClose() {
 
 onMounted(async () => {
   await getInventoryItems();
+  await getCategories();
+  await getUnits();
 });
 </script>
