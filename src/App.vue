@@ -102,6 +102,7 @@
               class="form-control"
               id="itemName"
               v-model="form.name"
+              maxlength="50"
               required
             />
           </div>
@@ -214,6 +215,7 @@
 import { onMounted, ref } from "vue";
 import BootstrapDialog from "./components/ModalDialog.vue";
 import axios from "axios";
+import Toast from "./services/toast";
 
 const baseUrl = import.meta.env.VITE_BASE_URL;
 
@@ -236,10 +238,22 @@ const form = ref({
   category_id: "",
   quantity: null,
   unit_id: "",
-  expiry_date: "",
+  expiry_date: null,
 });
 
 async function submitForm() {
+  // await Toast.fire({
+  //   icon: "success",
+  //   title: "Successfully",
+  // });
+
+  // Ensure empty dates are null
+  const cleanForm = {
+    ...form.value,
+    expiry_date: form.value.expiry_date || null,
+    quantity: form.value.quantity || 0, // Also good to handle potential null quantities
+  };
+
   if (isEdit.value) {
     console.log(form.value);
     try {
@@ -249,19 +263,36 @@ async function submitForm() {
       });
 
       console.log(response);
+
+      if (response.status === 200) {
+        await getInventoryItems();
+        showDialog.value = false;
+        clearForm();
+        await Toast.fire({
+          icon: "success",
+          title: "Item successfully updated!",
+        });
+      }
     } catch (error) {
       console.log(error);
     }
   } else {
-    console.log("add item");
-    console.log(form.value);
-
     try {
       const response = await axios.post(baseUrl, {
         method: "addItem",
-        data: form.value,
+        data: cleanForm,
       });
       console.log(response);
+
+      if (response.status === 200) {
+        await getInventoryItems();
+        showDialog.value = false;
+        clearForm();
+        await Toast.fire({
+          icon: "success",
+          title: "Item successfully added!",
+        });
+      }
     } catch (error) {
       console.log(error);
     }
@@ -293,6 +324,15 @@ async function handleDeleteItem() {
     });
 
     console.log(response);
+
+    if (response.status === 200) {
+      await getInventoryItems();
+      showDeleteDialog.value = false;
+      await Toast.fire({
+        icon: "success",
+        title: "Item successfully deleted!",
+      });
+    }
   } catch (error) {
     console.log(error);
   }
@@ -341,6 +381,16 @@ function editItem(item) {
   form.value = item;
   isEdit.value = true;
   showDialog.value = true;
+}
+
+function clearForm() {
+  form.value = {
+    name: "",
+    category_id: "",
+    quantity: null,
+    unit_id: "",
+    expiry_date: "",
+  };
 }
 
 function handleConfirm() {
