@@ -1,5 +1,19 @@
 <template>
   <div class="container mt-5">
+    <!-- Navigation Bar with Logo and Title -->
+    <nav class="navbar navbar-light bg-light mb-4 rounded">
+      <div class="container-fluid">
+        <div class="d-flex align-items-center">
+          <!-- Circular Logo Placeholder -->
+          <div class="logo-placeholder me-3">
+            <span class="logo-text">Logo</span>
+          </div>
+          <!-- System Title -->
+          <h1 class="h4 mb-0">Clinic Inventory Management System</h1>
+        </div>
+      </div>
+    </nav>
+
     <div class="row mb-3">
       <div class="col-md-8">
         <div class="input-group">
@@ -408,3 +422,23 @@ onMounted(async () => {
   await getUnits();
 });
 </script>
+
+<style scoped>
+.logo-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: bold;
+}
+
+.navbar {
+  padding: 0.75rem 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+</style>
