@@ -27,3 +27,5 @@ npm run dev
 ```sh
 npm run build
 ```
+
+In the .env put the base url of your api server

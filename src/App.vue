@@ -1,5 +1,5 @@
 <template>
-  <div class="container mt-5">
+  <div class="container">
     <!-- Navigation Bar with Logo and Title -->
     <nav class="navbar navbar-light bg-light mb-4 rounded">
       <div class="container-fluid">
@@ -15,7 +15,8 @@
     </nav>
 
     <div class="row mb-3">
-      <div class="col-md-8">
+      <!-- Search Input Group (Full-width on mobile, 2/3 width on desktop) -->
+      <div class="col-12 col-md-8 mb-2 mb-md-0">
         <div class="input-group">
           <input
             v-model="searchData.name"
@@ -42,59 +43,81 @@
           </button>
         </div>
       </div>
-      <div class="col-md-4 text-end">
-        <button @click="showDialog = true" class="btn btn-success">
+
+      <!-- Add Item Button (Full-width on mobile, auto-width on desktop) -->
+      <div class="col-12 col-md-4">
+        <button
+          @click="showDialog = true"
+          class="btn btn-success w-100 d-md-inline-block d-md-auto"
+        >
           <i class="bi bi-plus-lg"></i> Add Item
         </button>
       </div>
     </div>
 
-    <table class="table table-striped table-bordered">
-      <thead class="table-dark">
-        <tr>
-          <th>Name</th>
-          <th>Category</th>
-          <th>Quantity</th>
-          <th>Expiry Date</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <template v-if="items.length > 0">
-          <tr v-for="item in items" :key="item.id">
-            <td>{{ item.name }}</td>
-            <td>{{ item.category_name }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>{{ item.expiry_date ? item.expiry_date : "N/A" }}</td>
-            <td>
-              <div class="d-flex gap-2">
-                <button
-                  @click="editItem(item)"
-                  class="btn btn-sm btn-outline-primary"
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Quantity</th>
+            <th>Expiry Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-if="items.length > 0">
+            <tr v-for="item in items" :key="item.id">
+              <td>{{ item.name }}</td>
+              <td>{{ item.category_name }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ item.expiry_date ? item.expiry_date : "N/A" }}</td>
+              <td>
+                <div class="d-flex gap-2">
+                  <button
+                    @click="editItem(item)"
+                    class="btn btn-sm btn-outline-primary"
+                    title="Edit"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    @click="openGenerateReportDialog(item)"
+                    class="btn btn-sm btn-outline-primary"
+                    title="Edit"
+                  >
+                    Generate Report
+                  </button>
+                  <!-- <button
+                  @click="openDispenseDialog(item)"
+                  class="btn btn-sm btn-outline-danger"
                   title="Edit"
                 >
-                  Edit
-                </button>
-                <button
-                  @click="openDeleteDialog(item)"
-                  class="btn btn-sm btn-outline-danger"
-                  title="Delete"
-                >
-                  Delete
-                </button>
-              </div>
-            </td>
-          </tr>
-        </template>
-        <template v-else>
-          <tr>
-            <td colspan="5" class="text-center text-muted py-4">
-              No data available
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
+                  Dispense
+                </button> -->
+                  <button
+                    @click="openDeleteDialog(item)"
+                    class="btn btn-sm btn-outline-danger"
+                    title="Delete"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                No data available
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
 
     <BootstrapDialog
       v-model:show="showDialog"
@@ -222,6 +245,93 @@
         <button class="btn btn-danger" @click="handleDeleteItem">Delete</button>
       </template>
     </BootstrapDialog>
+
+    <BootstrapDialog
+      v-model:show="showDispenseDialog"
+      title="Dispense Item"
+      message="Are you sure you want to proceed?"
+      size="lg"
+      @confirm="handleConfirm"
+      @close="handleClose"
+    >
+      <!-- Custom body content -->
+      <template #body>
+        <div class="col-md-6">
+          <label for="quantity" class="form-label">Quantity</label>
+          <input
+            type="number"
+            class="form-control"
+            id="quantity"
+            min="0"
+            v-model.number="form.quantity"
+            required
+          />
+        </div>
+      </template>
+
+      <!-- Custom footer -->
+      <template #footer>
+        <button
+          class="btn btn-outline-primary"
+          @click="showDispenseDialog = false"
+        >
+          Cancel
+        </button>
+        <button class="btn btn-danger" @click="handleDeleteItem">
+          Dispense
+        </button>
+      </template>
+    </BootstrapDialog>
+
+    <BootstrapDialog
+      v-model:show="showGenerateReportDialog"
+      title="Generate Report"
+      message="Are you sure you want to proceed?"
+      size="lg"
+      @confirm="handleConfirm"
+      @close="handleClose"
+    >
+      <!-- Custom body content -->
+      <template #body>
+        <div class="mb-3">
+          <label for="expiryMonthYear" class="form-label">Report Month </label>
+          <input
+            type="month"
+            class="form-control"
+            id="expiryMonthYear"
+            v-model="generateReportData.date"
+          />
+        </div>
+        <div v-if="generateReportData.isShow">
+          <table class="table table-striped table-bordered">
+            <thead class="table-dark">
+              <tr>
+                <th>Name</th>
+                <th>Total Dispensed</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :key="generateReportData.item.id">
+                <td>{{ generateReportData.item.name }}</td>
+                <td>{{ generateReportData.total_dispensed }}</td>
+                <td>{{ generateReportData.date }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+
+      <!-- Custom footer -->
+      <template #footer>
+        <button class="btn btn-danger" @click="showDispenseDialog = false">
+          Cancel
+        </button>
+        <button class="btn btn-success" @click="handleGenerateReport">
+          Generate
+        </button>
+      </template>
+    </BootstrapDialog>
   </div>
 </template>
 
@@ -236,8 +346,12 @@ const baseUrl = import.meta.env.VITE_BASE_URL;
 const categories = ref([]);
 const units = ref([]);
 
+//dialogs
 const showDialog = ref(false);
 const showDeleteDialog = ref(false);
+const showDispenseDialog = ref(false);
+const showGenerateReportDialog = ref(false);
+
 const isEdit = ref(false);
 const items = ref([]);
 const itemToDelete = ref({});
@@ -253,6 +367,14 @@ const form = ref({
   quantity: null,
   unit_id: "",
   expiry_date: null,
+});
+
+const generateReportData = ref({
+  date: "",
+  inventory_id: "",
+  item: {},
+  total_dispensed: 0,
+  isShow: false,
 });
 
 async function submitForm() {
@@ -352,6 +474,27 @@ async function handleDeleteItem() {
   }
 }
 
+async function handleGenerateReport() {
+  try {
+    const response = await axios.post(baseUrl, {
+      method: "getDispenseReport",
+      data: generateReportData.value,
+    });
+
+    console.log(response);
+
+    if (response.status === 200) {
+      if (response.data.data[0].total_dispensed) {
+        generateReportData.value.total_dispensed =
+          response.data.data[0].total_dispensed;
+        generateReportData.value.isShow = true;
+      }
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 async function getCategories() {
   try {
     const response = await axios.post(baseUrl, {
@@ -389,6 +532,16 @@ async function getUnits() {
 function openDeleteDialog(item) {
   showDeleteDialog.value = true;
   itemToDelete.value = item;
+}
+
+function openDispenseDialog(item) {
+  showDispenseDialog.value = true;
+}
+
+function openGenerateReportDialog(item) {
+  showGenerateReportDialog.value = true;
+  generateReportData.value.inventory_id = item.id;
+  generateReportData.value.item = item;
 }
 
 function editItem(item) {
